@@ -21,7 +21,7 @@
 #include "geometry_msgs/msg/point.hpp"
 #include "geometry_msgs/msg/pose_stamped.hpp"
 #include "nav2_core/global_planner.hpp"
-#include "nav2_core/planner_exceptions.hpp"
+#include "nav2_core/exceptions.hpp"
 #include "nav_msgs/msg/path.hpp"
 // #include "nav2_cooperative_planner/cooperative.hpp"
 #include "nav2_util/robot_utils.hpp"
@@ -228,7 +228,7 @@ protected:
   nav2_costmap_2d::Costmap2D * costmap_;
 
   //////////////////////////////
-  //TODO FIX POSITIONS 
+  //TODO FIX POSITIONS
   nav2_costmap_2d::Costmap2D * costmap_follower_;
   rclcpp::Subscription<nav_msgs::msg::OccupancyGrid>::SharedPtr costmap_follower_subscription_;
   geometry_msgs::msg::TransformStamped _tf_map_foll_;

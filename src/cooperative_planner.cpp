@@ -101,7 +101,7 @@ CoopPlanner::configure(
   node->get_parameter(name + ".follower_frame", follower_frame_);
       declare_parameter_if_not_declared(node, name + ".leader_frame", rclcpp::ParameterValue(""));
   node->get_parameter(name + ".leader_frame", leader_frame_);
-  
+
 
   costmap_follower_ = costmap_ros->getCostmap();
 
@@ -159,25 +159,25 @@ nav_msgs::msg::Path CoopPlanner::createPlan(
 
   unsigned int mx_start, my_start, mx_goal, my_goal;
   if (!costmap_->worldToMap(start.pose.position.x, start.pose.position.y, mx_start, my_start)) {
-    throw nav2_core::StartOutsideMapBounds(
+    throw nav2_core::PlannerException(
             "Start Coordinates of(" + std::to_string(start.pose.position.x) + ", " +
             std::to_string(start.pose.position.y) + ") was outside bounds");
   }
 
   if (!costmap_->worldToMap(goal.pose.position.x, goal.pose.position.y, mx_goal, my_goal)) {
-    throw nav2_core::GoalOutsideMapBounds(
+    throw nav2_core::PlannerException(
             "Goal Coordinates of(" + std::to_string(goal.pose.position.x) + ", " +
             std::to_string(goal.pose.position.y) + ") was outside bounds");
   }
 
   if (costmap_->getCost(mx_start, my_start) == nav2_costmap_2d::LETHAL_OBSTACLE) {
-    throw nav2_core::StartOccupied(
+    throw nav2_core::PlannerException(
             "Start Coordinates of(" + std::to_string(start.pose.position.x) + ", " +
             std::to_string(start.pose.position.y) + ") was in lethal cost");
   }
 
   if (tolerance_ == 0 && costmap_->getCost(mx_goal, my_goal) == nav2_costmap_2d::LETHAL_OBSTACLE) {
-    throw nav2_core::GoalOccupied(
+    throw nav2_core::PlannerException(
             "Goal Coordinates of(" + std::to_string(goal.pose.position.x) + ", " +
             std::to_string(goal.pose.position.y) + ") was in lethal cost");
   }
@@ -250,9 +250,9 @@ nav_msgs::msg::Path CoopPlanner::createPlan(
   // const double angle_disc     = 0.1;
 
   //Get map size
-  int lead_x = costmap_->getSizeInCellsX(); 
+  int lead_x = costmap_->getSizeInCellsX();
   int lead_y = costmap_->getSizeInCellsY();
-  int foll_x = costmap_follower_->getSizeInCellsX(); 
+  int foll_x = costmap_follower_->getSizeInCellsX();
   int foll_y = costmap_follower_->getSizeInCellsY();
 
   // Update planner based on the new costmap size
@@ -293,7 +293,7 @@ nav_msgs::msg::Path CoopPlanner::createPlan(
 
   // TODO is slower with omp ?? fix
   // #pragma omp parallel for
-  
+
   for(int disc = (-1 * discretization), cnt = 0 ; disc < (discretization + 1) ; disc++ , cnt++)
   {
     auto shift_x = int(cos((static_cast<double>(disc) * angle_disc) + angl_lf) * dist_lf/resolution);
@@ -343,7 +343,7 @@ nav_msgs::msg::Path CoopPlanner::createPlan(
   {
     costmap_raw_->data.at(cc) = (cost_translation_table_[merged_map[ix]]);
   }
-  
+
   map_publisher_->publish(*costmap_raw_);
 
   auto stop_time = high_resolution_clock::now();
@@ -351,7 +351,7 @@ nav_msgs::msg::Path CoopPlanner::createPlan(
   RCLCPP_INFO_STREAM(this->logger_ ,"Time taken to merge maps: " << duration.count());
 
   if (!makePlan(start.pose, goal.pose, tolerance_, path)) {
-    throw nav2_core::NoValidPathCouldBeFound(
+    throw nav2_core::PlannerException(
             "Failed to create plan with tolerance of: " + std::to_string(tolerance_) );
   }
 
@@ -416,7 +416,7 @@ CoopPlanner::makePlan(
   worldToMap(wx, wy, mx, my);
   planner_->setGoal({(int)mx,(int)my,discretization - z_goal_disc});
   RCLCPP_INFO_STREAM(this->logger_,"plan goal : " << (int)mx << " " << (int)my << " "  << discretization - z_goal_disc);
-  
+
   auto saa = high_resolution_clock::now();
   AStar::CoordinateList plan_out = planner_->findPath();
   auto sae = high_resolution_clock::now();
