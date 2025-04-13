@@ -14,10 +14,12 @@
 #define NAV2_COOPERATIVE_PLANNER_COOP_PLANNER_HPP_
 
 #include <chrono>
+#include <std_msgs/msg/detail/float64_multi_array__struct.hpp>
 #include <string>
 #include <memory>
 #include <vector>
 
+#include "std_msgs/msg/float64_multi_array.hpp"
 #include "geometry_msgs/msg/point.hpp"
 #include "geometry_msgs/msg/pose_stamped.hpp"
 #include "nav2_core/global_planner.hpp"
@@ -237,6 +239,8 @@ protected:
   std::shared_ptr<tf2_ros::TransformListener> _tf_listener{nullptr};
   std::unique_ptr<tf2_ros::Buffer> _tf_buffer;
 
+  std_msgs::msg::Float64MultiArray time_message_;
+  rclcpp::Publisher<std_msgs::msg::Float64MultiArray>::SharedPtr time_publisher_;
   rclcpp::Publisher<nav_msgs::msg::OccupancyGrid>::SharedPtr map_publisher_;
   std::unique_ptr<nav_msgs::msg::OccupancyGrid> costmap_raw_;
 

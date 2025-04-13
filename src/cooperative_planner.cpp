@@ -29,6 +29,7 @@
 #include <iostream>
 #include <limits>
 #include <memory>
+#include <std_msgs/msg/detail/float64_multi_array__struct.hpp>
 #include <string>
 #include <vector>
 
@@ -109,6 +110,8 @@ CoopPlanner::configure(
       follower_costmap_, 1, std::bind(&CoopPlanner::costmap_follower_call, this, _1));
 
   map_publisher_ = node->create_publisher<nav_msgs::msg::OccupancyGrid>("merged", 1);
+
+  time_publisher_ = node->create_publisher<std_msgs::msg::Float64MultiArray>("time_data", 2);
 
   _tf_buffer = std::make_unique<tf2_ros::Buffer>(node->get_clock());
   _tf_listener = std::make_shared<tf2_ros::TransformListener>(*_tf_buffer);
@@ -349,11 +352,18 @@ nav_msgs::msg::Path CoopPlanner::createPlan(
   auto stop_time = high_resolution_clock::now();
   auto duration = duration_cast<microseconds>(stop_time - start_time);
   RCLCPP_INFO_STREAM(this->logger_ ,"Time taken to merge maps: " << duration.count());
+  time_message_.data.resize(3);
+  time_message_.data.at(0) = duration.count();
 
   if (!makePlan(start.pose, goal.pose, tolerance_, path)) {
     throw nav2_core::PlannerException(
             "Failed to create plan with tolerance of: " + std::to_string(tolerance_) );
   }
+  else
+  {
+    time_publisher_->publish(time_message_);
+  }
+
 
   RCLCPP_INFO_STREAM(this->logger_,"plan lenght : " << path.poses.size());
   RCLCPP_INFO_STREAM(this->logger_,"returning \n \n \n \n \n \n ");
@@ -404,6 +414,7 @@ CoopPlanner::makePlan(
   auto csae = high_resolution_clock::now();
   auto cdrr = duration_cast<microseconds>(csae - csaa);
   RCLCPP_INFO_STREAM(this->logger_ ,"Time taken to set costmap: " << cdrr.count());
+  time_message_.data.at(1) = cdrr.count();
 
   lock.unlock();
 
@@ -423,6 +434,7 @@ CoopPlanner::makePlan(
   auto drr = duration_cast<microseconds>(sae - saa);
 
   RCLCPP_INFO_STREAM(this->logger_ ,"Time taken to plan: " << drr.count());
+  time_message_.data.at(2) = drr.count();
 
   //TODO remove or use tolerance
   double pd = 0.5 *tolerance ;
