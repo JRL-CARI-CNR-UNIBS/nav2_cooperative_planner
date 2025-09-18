@@ -265,6 +265,10 @@ protected:
   // If the goal is obstructed, the tolerance specifies how many meters the planner
   // can relax the constraint in x and y before failing
   double tolerance_;
+  
+  // Transportation mode: interpolation between maps during merging
+  bool transportation_;
+
 
   // Whether to use the astar planner or default dijkstras
   bool use_astar_;

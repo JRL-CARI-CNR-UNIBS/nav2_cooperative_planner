@@ -93,6 +93,8 @@ CoopPlanner::configure(
   node->get_parameter(name + ".tolerance", tolerance_);
   declare_parameter_if_not_declared(node, name + ".allow_unknown", rclcpp::ParameterValue(true));
   node->get_parameter(name + ".allow_unknown", allow_unknown_);
+  declare_parameter_if_not_declared(node, name + ".transportation", rclcpp::ParameterValue(false));
+  node->get_parameter(name + ".transportation", transportation_);
   declare_parameter_if_not_declared(
     node, name + ".use_final_approach_orientation", rclcpp::ParameterValue(false));
   node->get_parameter(name + ".use_final_approach_orientation", use_final_approach_orientation_);
@@ -307,16 +309,39 @@ nav_msgs::msg::Path CoopPlanner::createPlan(
       for(int y=0;y<lead_y;y++)
       {
         int idx = y * lead_x + x;
-        int idx_2_x = ((x+shift_x) > 0) && ((x+shift_x) < lead_x) ?  (x+shift_x)  : 0 ;
-        int idx_2_y = ((y+shift_y) > 0) && ((y+shift_y) < lead_y) ?  (y+shift_y)  : 0 ;
-        // //TODO fix is not 0
-        if ((idx_2_x==0) || (idx_2_y==0))
-        {
-          continue;
-        }
+if (transportation_) {
+  int xxyylen = std::max(std::abs(shift_x), std::abs(shift_y));
+  std::vector<int> x_vec, y_vec;
+  x_vec.reserve(xxyylen);
+  y_vec.reserve(xxyylen);
 
-        int idx_2 = idx_2_y * lead_x + idx_2_x;
-        merged_map[idx + (cnt * lead_x * lead_y)] = std::max(lead_map[idx],(foll_map[idx_2]));
+  for(int pd = 0 ; pd < xxyylen ; pd++) {
+    x_vec.push_back((shift_x / xxyylen) * pd);
+    y_vec.push_back((shift_y / xxyylen) * pd);
+  }
+
+  std::vector<int> vals;
+  for(int pd = 0 ; pd < xxyylen ; pd++) {
+    int idx_2_x = ((x + x_vec[pd]) > 0) && ((x + x_vec[pd]) < lead_x) ? (x + x_vec[pd]) : 0;
+    int idx_2_y = ((y + y_vec[pd]) > 0) && ((y + y_vec[pd]) < lead_y) ? (y + y_vec[pd]) : 0;
+    if (idx_2_x == 0 || idx_2_y == 0) continue;
+    int idx_2 = idx_2_y * lead_x + idx_2_x;
+    vals.push_back(foll_map[idx_2]);
+  }
+
+  if (!vals.empty()) {
+    merged_map[idx + (cnt * lead_x * lead_y)] =
+        std::max<int>(lead_map[idx], *std::max_element(vals.begin(), vals.end()));
+  }
+} else {
+  int idx_2_x = ((x+shift_x) > 0) && ((x+shift_x) < lead_x) ?  (x+shift_x)  : 0 ;
+  int idx_2_y = ((y+shift_y) > 0) && ((y+shift_y) < lead_y) ?  (y+shift_y)  : 0 ;
+  if ((idx_2_x==0) || (idx_2_y==0)) continue;
+  int idx_2 = idx_2_y * lead_x + idx_2_x;
+  merged_map[idx + (cnt * lead_x * lead_y)] =
+      std::max(lead_map[idx], foll_map[idx_2]);
+}
+
 
       }
     }
